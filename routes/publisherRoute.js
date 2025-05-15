@@ -11,7 +11,7 @@ router.get("/", getAllGenre)
 router.get("/:id", getGenreById)
 router.post("/", addNewGenre)
 router.put("/:id", updateGenre)
-router.delete("/", deleteGenre)
+// router.delete("/", deleteGenre)
 
 
 module.exports = router
