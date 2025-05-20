@@ -1,33 +1,31 @@
-const getAllGenre = async (req, res) => {
+const getAllPublisher = async (req, res) => {
     const { knex } = req.app.locals
     await knex.select('*')
-        .from('genre')
+        .from('publisher')
         .then(data => {
             return res.status(200).json({ data })
         })
         .catch(error => res.status(500).json({ error }))
 }
 
-const addNewGenre = async (req, res) => {
+const addNewPublisher = async (req, res) => {
     const { knex } = req.app.locals
     const payload = req.body
 
-    console.log(payload.name.length)
-
-    if (!payload.name) {
-        return res.status(404).json("Пожалуйста, укажите жанр")
+    if (!payload.publisher) {
+        return res.status(404).json("Пожалуйста, укажите издателя")
     }
 
-    if (payload.name.length < 2) {
-        return res.status(404).json({ error: "Название жанра не должно быть меньше 2 символов"})
+    if (payload.publisher.length < 2) {
+        return res.status(404).json({ error: "Название издателя не должно быть меньше 2 символов"})
     }
 
-    if (payload.name.length > 100) {
-        return res.status(404).json({ error: "Название жанра не должно превышать 100 символов"})
+    if (payload.publisher.length > 100) {
+        return res.status(404).json({ error: "Название издателя не должно превышать 100 символов"})
     }
 
-    await knex('genre')
-        .insert({ name: payload.name })
+    await knex('publisher')
+        .insert({ publisher: payload.publisher })
         .then(data => {
             return res.status(200).json({ data })
         })
@@ -35,20 +33,20 @@ const addNewGenre = async (req, res) => {
 }
 
 
-const getGenreById = async (req, res) => {
+const getPublisherById = async (req, res) => {
     const { knex } = req.app.locals
     const { id } = req.params
     if (!id) {
-        return res.status(404).json("Пожалуйста, укажите id жанра")
+        return res.status(404).json("Пожалуйста, укажите id издателя")
     }
 
-    await knex('genre')
+    await knex('publisher')
         .where({
             id: id,
         })
         .then(data => {
             if (data.length === 0) {
-                return res.status(200).json({ error: "Жанр не найден" })
+                return res.status(200).json({ error: "Издатель не найден" })
             }
             return res.status(200).json({ data })
         })
@@ -58,60 +56,57 @@ const getGenreById = async (req, res) => {
     )
 }
 
-const updateGenre = async (req, res) => {
+const updatePublisher = async (req, res) => {
     const { knex } = req.app.locals
     const payload = req.body
     const { id } = req.params
 
-    // console.log(payload.name)
-
-    if (!payload.name) {
-        return res.status(404).json("Пожалуйста, укажите жанр")
+    if (!payload.publisher) {
+        return res.status(404).json("Пожалуйста, укажите издателя")
     }
 
-    if (payload.name.length < 2) {
-        return res.status(404).json({ error: "Название жанра не должно быть меньше 2 символов"})
+    if (payload.publisher.length < 2) {
+        return res.status(404).json({ error: "Название издателя не должно быть меньше 2 символов"})
     }
 
-    if (payload.name.length > 100) {
-        return res.status(404).json({ error: "Название жанра не должно превышать 100 символов"})
+    if (payload.publisher.length > 100) {
+        return res.status(404).json({ error: "Название издателя не должно превышать 100 символов"})
     }
 
-    await knex('genre')
+    await knex('publisher')
         .where({ id: id })
-        .update({ name: payload.name })
+        .update({ publisher: payload.publisher })
         .then(data => {
             return res.status(200).json({ data })
         })
         .catch(error => res.status(500).json({ error }))
 }
 
-const deleteGenre = async (req, res) => {
+const deletePublisher = async (req, res) => {
     const { knex } = req.app.locals
     const payload = req.body
-    // console.log(payload.name)
 
     if (!payload.id) {
-        return res.status(404).json("Пожалуйста, укажите id жанра")
+        return res.status(404).json("Пожалуйста, укажите id издателя")
     }
 
-    await knex('genre')
+    await knex('publisher')
         .where({ id: payload.id })
         .del()
         .then(data => {
             if (data === 0) {
-                return res.status(200).json({ error: "Жанр не найден" })
+                return res.status(200).json({ error: "Издатель не найден" })
             }
-            return res.status(200).json({ data: "Жанр удален" })
+            return res.status(200).json({ data: "Издатель удален" })
         })
         .catch(error => res.status(500).json({ error }))
 }
 
 
 module.exports = {
-    getAllGenre,
-    addNewGenre,
-    getGenreById,
-    updateGenre,
-    deleteGenre
+    getAllPublisher,
+    addNewPublisher,
+    getPublisherById,
+    updatePublisher,
+    deletePublisher
 }

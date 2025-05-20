@@ -1,17 +1,17 @@
 const express = require('express')
 const router = express.Router()
 const {     
-    getAllGenre,
-    addNewGenre,
-    getGenreById,
-    updateGenre,
-    deleteGenre } = require("../controllers/genreCtlr")
+    getAllPublisher,
+    addNewPublisher,
+    getPublisherById,
+    updatePublisher,
+    deletePublisher } = require("../controllers/publisherCtlr")
 
-router.get("/", getAllGenre)
-router.get("/:id", getGenreById)
-router.post("/", addNewGenre)
-router.put("/:id", updateGenre)
-// router.delete("/", deleteGenre)
+router.get("/", getAllPublisher)
+router.get("/:id", getPublisherById)
+router.post("/", addNewPublisher)
+router.put("/:id", updatePublisher)
+router.delete("/", deletePublisher)
 
 
 module.exports = router
