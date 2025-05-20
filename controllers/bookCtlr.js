@@ -1,7 +1,7 @@
 const getAllBooks = async (req, res) => {
     const { knex } = req.app.locals
     await knex.select('*')
-        .from('genre')
+        .from('books')
         .then(data => {
             return res.status(200).json({ data })
         })
@@ -44,13 +44,15 @@ const addNewBook = async (req, res) => {
             title: payload.title,
             genre: payload.genre,
             author: payload.author,
+            year: payload.year,
             publisher: payload.publisher,
+            value: payload.value,
+            annotation: payload.annotation,
             text: payload.text
         })
 
         return res.status(201).json({ book: data })
 
-        // return res.status(200).json({ data })
 
     } catch (error) {
         return res.status(500).json({ error: error.message || "Внутренняя ошибка сервера" })
@@ -66,13 +68,13 @@ const getBookById = async (req, res) => {
         return res.status(404).json("Пожалуйста, укажите id жанра")
     }
 
-    await knex('genre')
+    await knex('books')
         .where({
             id: id,
         })
         .then(data => {
             if (data.length === 0) {
-                return res.status(200).json({ error: "Жанр не найден" })
+                return res.status(200).json({ error: "Книга не найдена" })
             }
             return res.status(200).json({ data })
         })
@@ -87,46 +89,72 @@ const updateBook = async (req, res) => {
     const payload = req.body
     const { id } = req.params
 
-    // console.log(payload.name)
-
-    if (!payload.name) {
-        return res.status(404).json("Пожалуйста, укажите жанр")
+    if (!payload.title || !payload.genre || !payload.author || !payload.publisher || !payload.text) {
+        return res.status(400).json({ error: "Пожалуйста, заполните все необходимые поля" })
     }
 
-    if (payload.name.length < 2) {
-        return res.status(404).json({ error: "Название жанра не должно быть меньше 2 символов" })
-    }
 
-    if (payload.name.length > 100) {
-        return res.status(404).json({ error: "Название жанра не должно превышать 100 символов" })
-    }
+    try {
 
-    await knex('genre')
+        var errors = new Object();
+        
+        const genreExists = await knex('genre').where({ id: payload.genre }).first()
+        if (!genreExists) {
+            errors.genre = "Жанр не найден. Пожалуйста, укажите правильный id"
+        }
+
+        const authorExists = await knex('author').where({ id: payload.author }).first()
+        if (!authorExists) {
+            errors.author = "Автор не найден. Пожалуйста, укажите правильный id"
+        }
+
+        
+        const publisherExists = await knex('publisher').where({ id: payload.publisher }).first()
+        if (!publisherExists) {
+            errors.publisher = "Издатель не найден. Пожалуйста, укажите правильный id"
+        }
+
+        if (Object.keys(errors).length !== 0) {
+            return res.status(404).json({ errors: errors })
+        }
+
+        const data = await knex('books')
         .where({ id: id })
-        .update({ name: payload.name })
-        .then(data => {
-            return res.status(200).json({ data })
+        .update({
+            title: payload.title,
+            genre: payload.genre,
+            author: payload.author,
+            year: payload.year,
+            publisher: payload.publisher,
+            value: payload.value,
+            annotation: payload.annotation,
+            text: payload.text
         })
-        .catch(error => res.status(500).json({ error }))
+
+        return res.status(201).json({ book: data })
+
+    } catch (error) {
+        return res.status(500).json({ error: error.message || "Внутренняя ошибка сервера" })
+    }
+
 }
 
 const deleteBook = async (req, res) => {
     const { knex } = req.app.locals
     const payload = req.body
-    // console.log(payload.name)
 
     if (!payload.id) {
-        return res.status(404).json("Пожалуйста, укажите id жанра")
+        return res.status(404).json("Пожалуйста, укажите id книги")
     }
 
-    await knex('genre')
+    await knex('books')
         .where({ id: payload.id })
         .del()
         .then(data => {
             if (data === 0) {
-                return res.status(200).json({ error: "Жанр не найден" })
+                return res.status(200).json({ error: "Книга не найдена" })
             }
-            return res.status(200).json({ data: "Жанр удален" })
+            return res.status(200).json({ data: "Книга удалена" })
         })
         .catch(error => res.status(500).json({ error }))
 }
