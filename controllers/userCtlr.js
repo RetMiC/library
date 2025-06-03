@@ -1,78 +1,107 @@
-const getAllBooks = async (req, res) => {
-    const { knex } = req.app.locals
-    await knex.select('*')
-        .from('genre')
-        .then(data => {
-            return res.status(200).json({ data })
-        })
-        .catch(error => res.status(500).json({ error }))
-}
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+// const { getUserByEmail, createUser } = require("../models/userModel");
 
-const addNewBook = async (req, res) => {
+// Регистрация пользователя
+const registrationUser = async (req, res) => {
     const { knex } = req.app.locals
-    const payload = req.body
+    const { email, password, name } = req.body;
 
-    if (!payload.title || !payload.genre || !payload.author || !payload.publisher || !payload.text) {
-        return res.status(400).json({ error: "Пожалуйста, заполните все необходимые поля" })
+    if (!email || !password || !name) {
+        return res.status(400).json({ message: "Пожалуйста, заполните все поля" });
     }
 
     try {
-
-        var errors = new Object();
-        
-        const genreExists = await knex('genre').where({ id: payload.genre }).first()
-        if (!genreExists) {
-            errors.genre = "Жанр не найден. Пожалуйста, укажите правильный id"
+        // Проверяем, существует ли пользователь
+        const userExists = await knex('users').where({ email: email }).first()
+        if (userExists) {
+            return res.status(404).json({ error: "Данный пользователь уже существует" })
         }
 
-        const authorExists = await knex('author').where({ id: payload.author }).first()
-        if (!authorExists) {
-            errors.author = "Автор не найден. Пожалуйста, укажите правильный id"
-        }
+        // Хэшируем пароль
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        
-        const publisherExists = await knex('publisher').where({ id: payload.publisher }).first()
-        if (!publisherExists) {
-            errors.publisher = "Издатель не найден. Пожалуйста, укажите правильный id"
-        }
-
-        if (Object.keys(errors).length !== 0) {
-            return res.status(404).json({ errors: errors })
-        }
-
-        const [data] = await knex('books').insert({
-            title: payload.title,
-            genre: payload.genre,
-            author: payload.author,
-            publisher: payload.publisher,
-            text: payload.text
+        // Создаём пользователя
+        const [data] = await knex('users').insert({
+            email: email,
+            name: name,
+            password: hashedPassword,
+            role: "User"
         })
 
-        return res.status(201).json({ book: data })
+        return res.status(201).json({ user: data })
 
         // return res.status(200).json({ data })
 
     } catch (error) {
         return res.status(500).json({ error: error.message || "Внутренняя ошибка сервера" })
     }
+};
+
+// Вход пользователя
+const loginUser = async (req, res) => {
+    const { knex } = req.app.locals
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ message: "Пожалуйста, заполните все поля" });
+    }
+
+    try {
+        // Проверяем, существует ли пользователь
+        const userExists = await knex('users').where({ email: email }).first()
+        if (!userExists) {
+            return res.status(404).json({ error: "Неправильный логин или пароль" })
+        }
+
+        // Проверяем пароль
+        const isMatch = await bcrypt.compare(password, userExists.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Неправильный логин или пароль" });
+        }
+
+        // Генерируем JWT с добавлением роли пользователя
+        const token = jwt.sign(
+            {
+                id: userExists.id,
+                email: userExists.email,
+                role: userExists.role // Передача роли пользователя
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "24h" }
+        );
+
+        res.json({ token });
+    } catch (error) {
+        console.error("Ошибка при входе пользователя:", error);
+        res.status(500).json({ message: "Ошибка сервера" });
+    }
+};
+
+const getAllUser = async (req, res) => {
+    const { knex } = req.app.locals
+    await knex.select('*')
+        .from('users')
+        .then(data => {
+            return res.status(200).json({ data })
+        })
+        .catch(error => res.status(500).json({ error }))
 }
 
-
-
-const getBookById = async (req, res) => {
+const getUserById = async (req, res) => {
     const { knex } = req.app.locals
     const { id } = req.params
     if (!id) {
-        return res.status(404).json("Пожалуйста, укажите id жанра")
+        return res.status(404).json("Пожалуйста, укажите id пользователя")
     }
 
-    await knex('genre')
+    await knex('users')
         .where({
             id: id,
         })
         .then(data => {
             if (data.length === 0) {
-                return res.status(200).json({ error: "Жанр не найден" })
+                return res.status(200).json({ error: "Пользователь не найден" })
             }
             return res.status(200).json({ data })
         })
@@ -82,60 +111,62 @@ const getBookById = async (req, res) => {
         )
 }
 
-const updateBook = async (req, res) => {
+const updateUser = async (req, res) => {
     const { knex } = req.app.locals
     const payload = req.body
     const { id } = req.params
 
     // console.log(payload.name)
 
-    if (!payload.name) {
-        return res.status(404).json("Пожалуйста, укажите жанр")
+    // if (!payload.name) {
+    //     return res.status(404).json("Пожалуйста, укажите жанр")
+    // }
+
+    try {
+        const data = await knex('users')
+            .where({ id: id })
+            .update({
+                name: payload.name,
+                email: payload.email,
+                role: payload.year
+            })
+
+        return res.status(201).json({ user: data })
     }
 
-    if (payload.name.length < 2) {
-        return res.status(404).json({ error: "Название жанра не должно быть меньше 2 символов" })
+    catch (error) {
+        console.error("Ошибка при входе пользователя:", error);
+        res.status(500).json({ message: "Ошибка сервера" });
     }
-
-    if (payload.name.length > 100) {
-        return res.status(404).json({ error: "Название жанра не должно превышать 100 символов" })
-    }
-
-    await knex('genre')
-        .where({ id: id })
-        .update({ name: payload.name })
-        .then(data => {
-            return res.status(200).json({ data })
-        })
-        .catch(error => res.status(500).json({ error }))
 }
 
-const deleteBook = async (req, res) => {
+const deleteUser = async (req, res) => {
     const { knex } = req.app.locals
     const payload = req.body
     // console.log(payload.name)
 
     if (!payload.id) {
-        return res.status(404).json("Пожалуйста, укажите id жанра")
+        return res.status(404).json("Пожалуйста, укажите id пользователя")
     }
 
-    await knex('genre')
+    await knex('users')
         .where({ id: payload.id })
         .del()
         .then(data => {
             if (data === 0) {
-                return res.status(200).json({ error: "Жанр не найден" })
+                return res.status(200).json({ error: "Пользователь не найден" })
             }
-            return res.status(200).json({ data: "Жанр удален" })
+            return res.status(200).json({ data: "Пользователь удален" })
         })
         .catch(error => res.status(500).json({ error }))
 }
 
 
 module.exports = {
-    getAllBooks,
-    getBookById,
-    addNewBook,
-    updateBook,
-    deleteBook,
+    getAllUser,
+    getUserById,
+    registrationUser,
+    loginUser,
+    updateUser,
+    deleteUser,
 }
